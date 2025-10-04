@@ -1,51 +1,31 @@
 // wallet.js
 require('dotenv').config();
-const axios = require('axios');
-const bip39 = require('bip39');
-const bitcoinjs = require('bitcoinjs-lib'); // ✅ ¡AÑADIDO! Esto era lo que faltaba
+const { Wallet } = require('@nexajs/lib');
 
-const NETWORK = {
-    messagePrefix: '\x18Nexa Signed Message:\n',
-    bech32: 'nexa',
-    bip32: {
-        public: 0x0488b21e,
-        private: 0x0488ade4,
-    },
-    pubKeyHash: 0x1c,
-    scriptHash: 0x1f,
-    wif: 0x80,
-};
-
-let cachedWallet = null;
+let walletInstance = null;
 
 function getWallet() {
-    if (!cachedWallet) {
+    if (!walletInstance) {
         const mnemonic = process.env.MNEMONIC;
         if (!mnemonic) {
             throw new Error('MNEMONIC no definido en .env');
         }
-        if (!bip39.validateMnemonic(mnemonic)) {
-            throw new Error('Mnemonic inválido. Debe tener 12 o 24 palabras válidas.');
-        }
 
-        const seed = bip39.mnemonicToSeedSync(mnemonic);
-        const root = bitcoinjs.bip32.fromSeed(seed); // ✅ ¡AHORA FUNCIONA!
-        const child = root.derivePath("m/44'/145'/0'/0/0");
-        const derivedAddress = child.address;
-
-        cachedWallet = { mnemonic, address: derivedAddress };
+        // ✅ Usa la librería oficial de Nexa
+        walletInstance = new Wallet(mnemonic);
     }
-    return cachedWallet;
+    return walletInstance;
 }
 
 async function getBalance() {
     const wallet = getWallet();
     try {
-        // ✅ ¡CORREGIDO: SIN ESPACIOS EN LA URL!
-        const response = await axios.get(`https://api.nexa.org/v1/address/${wallet.address}`);
-        return response.data.balance; // En satoshis
+        // ✅ Usa la API pública de Nexa
+        const response = await fetch(`https://api.nexa.org/v1/address/${wallet.address}`);
+        const data = await response.json();
+        return data.balance; // En satoshis
     } catch (error) {
-        console.error('❌ Error al obtener saldo:', error.response?.data || error.message);
+        console.error('❌ Error al obtener saldo:', error.message);
         throw new Error('No se pudo obtener el saldo de la billetera de la faucet');
     }
 }

@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { getWallet, getBalance, sendFaucet } = require('./wallet');
 const { canRequest, saveRequest } = require('./database');
-const bech32 = require('../bech32/dist');
+const bech32 = require('bech32'); // ✅ CORREGIDO: Instalado desde npm, no desde carpeta local
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -14,8 +14,8 @@ app.use(cors({
         'http://localhost:3000',
         'http://127.0.0.1:5500',
         'http://127.0.0.1:8080',
-        'https://tudominio.com',
-        'https://devicegridtest.org'
+        'https://tudominio.com',           // ✅ Sin espacios
+        'https://devicegridtest.org'       // ✅ Sin espacios
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -46,7 +46,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Faucet Backend Activo' });
 });
 
-// ✅ VALIDACIÓN DE DIRECCIÓN NEXA SIN @nexajs/address
+// ✅ VALIDACIÓN DE DIRECCIÓN NEXA USANDO bech32 (npm)
 function isValidNexaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     const prefix = 'nexa:';
@@ -107,7 +107,7 @@ app.post('/faucet', async (req, res) => {
                             fields: [
                                 { name: "Dirección", value: `\`${address}\``, inline: true },
                                 { name: "Monto", value: `${amount / 100000000} NEXA`, inline: true },
-                                { name: "TXID", value: `[Ver simulado](https://explorer.nexa.org/tx/${txid})`, inline: false }
+                                { name: "TXID", value: `[Ver simulado](https://explorer.nexa.org/tx/${txid})`, inline: false } // ✅ SIN ESPACIOS
                             ],
                             timestamp: new Date().toISOString(),
                             footer: { text: "Nexa Faucet" }
