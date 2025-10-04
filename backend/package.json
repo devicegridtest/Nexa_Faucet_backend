@@ -16,11 +16,12 @@
     "axios": "^1.7.2",
     "bip39": "^3.0.5",
     "libnexa-ts": "^2.0.0",
-    "bech32": "^2.1.0",
+    "bech32": "^2.0.0",
     "bitcoinjs-lib": "^7.0.0",
     "sqlite3": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"
   }
+
 }
