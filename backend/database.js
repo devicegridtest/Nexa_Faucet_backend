@@ -11,7 +11,7 @@ db.serialize(() => {
     db.run(`
         CREATE TABLE IF NOT EXISTS requests (
             address TEXT PRIMARY KEY,
-            last_request INTEGER NOT NULL
+            last_request INTEGER NOT NULL  -- almacenamos en SEGUNDOS Unix
         )
     `);
 });
@@ -25,9 +25,14 @@ function canRequest(address) {
                 if (err) return reject(err);
                 if (!row) return resolve(true);
 
-                const cooldown = parseInt(process.env.COOLDOWN_MS) || 86400000;
-                const now = Date.now();
-                resolve((now - row.last_request) > cooldown);
+                // COOLDOWN en milisegundos (ej: 86400000 = 24h)
+                const cooldownMs = parseInt(process.env.COOLDOWN_MS) || 86400000;
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                const lastRequestSeconds = row.last_request;
+
+                // Comparamos en milisegundos para precisión
+                const elapsedMs = (nowSeconds - lastRequestSeconds) * 1000;
+                resolve(elapsedMs > cooldownMs);
             }
         );
     });
@@ -35,10 +40,10 @@ function canRequest(address) {
 
 function saveRequest(address) {
     return new Promise((resolve, reject) => {
-        const now = Date.now();
+        const nowSeconds = Math.floor(Date.now() / 1000); // ✅ Segundos Unix
         db.run(
             `INSERT OR REPLACE INTO requests (address, last_request) VALUES (?, ?)`,
-            [address, now],
+            [address, nowSeconds],
             (err) => {
                 if (err) return reject(err);
                 resolve();
