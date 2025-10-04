@@ -1,52 +1,49 @@
 // wallet.js
 require('dotenv').config();
-const { Wallet } = require('nexa-wallet-sdk'); // Asegúrate de tener este paquete
+const { Wallet, rostrumProvider } = require('nexa-wallet-sdk');
 
 let walletInstance = null;
 
-function getWallet() {
+async function getWallet() {
     if (!walletInstance) {
         const mnemonic = process.env.MNEMONIC;
-        if (!mnemonic) {
-            throw new Error('MNEMONIC no definido en .env');
-        }
+        if (!mnemonic) throw new Error('MNEMONIC no definido en .env');
 
         try {
-            walletInstance = new Wallet(mnemonic);
-            // ✅ Forzar la generación de la dirección
-            if (!walletInstance.address) {
-                console.error('❌ La billetera no generó una dirección válida. Verifica el MNEMONIC.');
-                throw new Error('No se pudo derivar la dirección desde el mnemonic');
-            }
+            // ✅ Conectar primero al nodo de Nexa
+            await rostrumProvider.connect('mainnet'); // o 'testnet'
+
+            // ✅ Crear billetera
+            walletInstance = new Wallet(mnemonic, 'mainnet');
+            await walletInstance.initialize(); // ✅ Descubre cuentas
+
         } catch (error) {
-            console.error('❌ Error al crear billetera:', error.message);
-            throw new Error('Mnemonic inválido o incompatible con nexa-wallet-sdk');
+            console.error('❌ Error al conectar o inicializar billetera:', error);
+            throw error;
         }
     }
     return walletInstance;
 }
 
 async function getBalance() {
-    const wallet = getWallet();
-    try {
-        const response = await fetch(`https://api.nexa.org/v1/address/${wallet.address}`);
-        const data = await response.json();
-        return data.balance;
-    } catch (error) {
-        console.error('❌ Error al obtener saldo:', error.message);
-        throw new Error('No se pudo obtener el saldo de la faucet');
-    }
+    const wallet = await getWallet();
+    const account = wallet.accountStore.getAccount('1.0');
+    return account.balance.confirmed;
 }
 
 async function sendFaucet(toAddress, amountSatoshis) {
-    const wallet = getWallet();
-    try {
-        const txid = await wallet.send(toAddress, amountSatoshis);
-        return txid;
-    } catch (error) {
-        console.error('❌ Error al enviar NEXA:', error.message);
-        throw new Error('No se pudo enviar la transacción');
-    }
+    const wallet = await getWallet();
+    const account = wallet.accountStore.getAccount('1.0');
+
+    const tx = await wallet.newTransaction(account)
+        .onNetwork('mainnet')
+        .sendTo(toAddress, amountSatoshis.toString()) // ✅ manda como string
+        .populate()
+        .sign()
+        .build();
+
+    const txId = await wallet.sendTransaction(tx.serialize());
+    return txId;
 }
 
 module.exports = { getWallet, getBalance, sendFaucet };

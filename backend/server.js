@@ -9,15 +9,15 @@ const bech32 = require('bech32');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ✅ CORS: Sin espacios ni comillas extra
+// ✅ CORS: Sin espacios ni URLs mal formadas
 app.use(cors({
     origin: [
         'null',
         'http://localhost:3000',
         'http://127.0.0.1:5500',
         'http://127.0.0.1:8080',
-        'https://tudominio.com',       // ✅ sin espacios
-        'https://devicegridtest.org'   // ✅ sin espacios
+        'https://tudominio.com',           // ✅ sin espacios
+        'https://devicegridtest.org'       // ✅ sin espacios
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -51,7 +51,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Faucet Backend Activo' });
 });
 
-// ✅ VALIDACIÓN DE DIRECCIÓN NEXA
+// ✅ Validación de dirección Nexa
 function isValidNexaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     const prefix = 'nexa:';
@@ -232,14 +232,15 @@ app.use('*', (req, res) => {
 try {
     app.listen(PORT, '0.0.0.0', () => {
         try {
-            const wallet = getWallet(); // ✅ Llamamos a getWallet() dentro del callback
+            const wallet = getWallet(); // ✅ Solo intentamos si todo está listo
             console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
             console.log(`💡 Usa POST /faucet para solicitar fondos`);
             console.log(`📊 Saldo: GET /balance`);
             console.log(`📡 Transacciones: GET /transactions`);
             console.log(`🔑 Dirección de la faucet: ${wallet.address}`);
         } catch (walletError) {
-            console.error('❌ No se pudo cargar la dirección:', walletError.message);
+            console.error('❌ No se pudo cargar la billetera:', walletError.message);
+            console.error('📝 Revisa tu MNEMONIC o ejecuta test-wallet.js');
         }
     });
 } catch (error) {
