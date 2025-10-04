@@ -15,7 +15,7 @@
     "dotenv": "^16.0.0",
     "axios": "^1.7.2",
     "bip39": "^3.0.5",
-    "bitcoinjs-lib": "^3.0.1",
+    "bitcoinjs-lib": "^7.0.0",
     "@nexajs/address": "^0.1.21",
     "sqlite3": "^5.1.0"
   },
@@ -23,4 +23,5 @@
     "nodemon": "^3.0.0"
   }
 }
+
 
