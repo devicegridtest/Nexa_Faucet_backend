@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('HTTP ' + response.status);
             const data = await response.json();
             if (data.success && data.balanceInNEXA !== undefined) {
-                // ✅ CORRECTO: balanceInNEXA ya es "500.0000"
+                // ✅ CORRECTO: balanceInNEXA ya es un string como "500.00"
                 clearLoader(balanceElement, `<strong>${data.balanceInNEXA}</strong> NEXA`);
             } else {
                 clearLoader(balanceElement, 'Error');
@@ -72,7 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.success) throw new Error(data.error || 'Error desconocido');
 
-            const amount = data.amount ? (data.amount / 100000000).toFixed(4) : '0.00000000';
+            // ✅ CORREGIDO: 1 NEXA = 100 satoshis → divide entre 100
+            const amount = data.amount ? (data.amount / 100).toFixed(2) : '0.00';
             const shortTxid = data.txid ? data.txid.substring(0, 12) + '...' : 'N/A';
             showMessage(`✅ ¡Enviados ${amount} NEXA! TX: ${shortTxid}`, 'success');
 
@@ -152,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginAdminBtn = document.getElementById('loginAdmin');
     const adminPasswordInput = document.getElementById('adminPassword');
 
-    // 🔐 Contraseña ofuscada en Base64 (NexaFaucet2025!)
+
     const ADMIN_PASSWORD = atob('TmV4YUZhdWNldDIwMjUh');
 
     openAdminBtn?.addEventListener('click', () => {
@@ -218,4 +219,3 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTransactions();
     setInterval(loadTransactions, 30000);
 });
-
