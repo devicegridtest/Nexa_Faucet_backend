@@ -1,6 +1,6 @@
 // wallet.js
 require('dotenv').config();
-const { Wallet } = require('libnexa-ts');
+const { Wallet } = require('nexa-wallet-sdk');
 
 let walletInstance = null;
 
@@ -41,3 +41,4 @@ async function sendFaucet(toAddress, amountSatoshis) {
 
 
 module.exports = { getWallet, getBalance, sendFaucet };
+
