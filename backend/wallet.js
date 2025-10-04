@@ -1,25 +1,16 @@
 // backend/wallet.js
 require('dotenv').config();
 const { Wallet, rostrumProvider } = require('nexa-wallet-sdk');
-const { UnitUtils } = require('libnexa-ts');
 
 let walletInstance = null;
 
 const getWallet = async () => {
     if (!walletInstance) {
         const mnemonic = process.env.MNEMONIC;
-        if (!mnemonic) {
-            throw new Error('MNEMONIC no definido en .env');
-        }
-
-        try {
-            await rostrumProvider.connect('mainnet');
-            walletInstance = new Wallet(mnemonic, 'mainnet');
-            await walletInstance.initialize();
-        } catch (error) {
-            console.error('❌ Error al crear billetera:', error.message);
-            throw error;
-        }
+        if (!mnemonic) throw new Error('MNEMONIC no definido');
+        await rostrumProvider.connect('mainnet');
+        walletInstance = new Wallet(mnemonic, 'mainnet');
+        await walletInstance.initialize();
     }
     return walletInstance;
 };
@@ -27,47 +18,30 @@ const getWallet = async () => {
 const getBalance = async () => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
-    const rawBalance = account.balance.confirmed;
+    const raw = account.balance.confirmed;
 
-    // 🔍 Detecta automáticamente la unidad
-    if (typeof rawBalance === 'string') {
-        // Ej: "100500.00" → NEXA con 2 decimales
-        try {
-            const sats = UnitUtils.parseNEXA(rawBalance);
-            return Number(sats);
-        } catch (err) {
-            console.error('Error parseando string a satoshis:', err);
-            return 0;
-        }
+    // Asume que el SDK devuelve satoshis como número
+    if (typeof raw === 'number') return Math.floor(raw);
+    
+    // Si es string, intenta convertir (poco probable en este SDK)
+    if (typeof raw === 'string') {
+        const num = parseFloat(raw);
+        return isNaN(num) ? 0 : Math.floor(num);
     }
 
-    if (typeof rawBalance === 'number') {
-        // Ej: 10050000 → asume satoshis
-        return Math.floor(rawBalance);
-    }
-
-    console.error('Formato de saldo desconocido:', rawBalance);
     return 0;
 };
 
 const sendFaucet = async (toAddress, amountSatoshis) => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
-
-    try {
-        const tx = await wallet.newTransaction(account)
-            .onNetwork('mainnet')
-            .sendTo(toAddress, amountSatoshis.toString())
-            .populate()
-            .sign()
-            .build();
-
-        const txid = await wallet.sendTransaction(tx.serialize());
-        return txid;
-    } catch (error) {
-        console.error('❌ Error al enviar NEXA:', error.message);
-        throw new Error(`No se pudo enviar: ${error.message}`);
-    }
+    const tx = await wallet.newTransaction(account)
+        .onNetwork('mainnet')
+        .sendTo(toAddress, amountSatoshis.toString())
+        .populate()
+        .sign()
+        .build();
+    return await wallet.sendTransaction(tx.serialize());
 };
 
 const getFaucetAddress = async () => {
