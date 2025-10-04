@@ -4,20 +4,19 @@ const express = require('express');
 const cors = require('cors');
 const { getWallet, getBalance, sendFaucet } = require('./wallet');
 const { canRequest, saveRequest } = require('./database');
-const bech32 = require('bech32');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ✅ CORS: Sin espacios ni URLs mal formadas
+// ✅ CORS: Sin espacios, sin comillas extra
 app.use(cors({
     origin: [
         'null',
         'http://localhost:3000',
         'http://127.0.0.1:5500',
         'http://127.0.0.1:8080',
-        'https://tudominio.com',           // ✅ sin espacios
-        'https://devicegridtest.org'       // ✅ sin espacios
+        'https://tudominio.com',       // ✅ Sin espacios
+        'https://devicegridtest.org'   // ✅ Sin espacios
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -59,7 +58,7 @@ function isValidNexaAddress(address) {
 
     const bech32Data = address.slice(prefix.length);
     try {
-        const { data } = bech32.decode(bech32Data, 702);
+        const { data } = require('bech32').decode(bech32Data, 702);
         return data.length === 20; // P2WPKH
     } catch {
         return false;
@@ -139,7 +138,7 @@ app.post('/faucet', async (req, res) => {
         } catch (sendError) {
             console.error('❌ Error al enviar transacción:', sendError.message);
             res.status(500).json({ 
-                error: 'No se pudo enviar la transacción. Verifica tu billetera o el saldo.',
+                error: 'No se pudo enviar la transacción.',
                 details: sendError.message
             });
         }
@@ -156,7 +155,10 @@ app.post('/faucet', async (req, res) => {
 // 🔁 Obtener saldo
 app.get('/balance', async (req, res) => {
     try {
-        const wallet = getWallet();
+        const wallet = await getWallet(); // ✅ Ahora esperamos inicialización
+        const account = wallet.accountStore.getAccount('1.0');
+        const address = account.getNewAddress().toString();
+
         const balance = await getBalance();
         const balanceInNEXA = (balance / 100000000).toFixed(4);
 
@@ -164,7 +166,7 @@ app.get('/balance', async (req, res) => {
             success: true,
             balance,
             balanceInNEXA,
-            address: wallet.address
+            address: address
         });
     } catch (error) {
         console.error('Error obteniendo saldo:', error);
@@ -230,14 +232,17 @@ app.use('*', (req, res) => {
 
 // ✅ Iniciar servidor
 try {
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', async () => {
         try {
-            const wallet = getWallet(); // ✅ Solo intentamos si todo está listo
+            const wallet = await getWallet();
+            const account = wallet.accountStore.getAccount('1.0');
+            const address = account.getNewAddress().toString();
+
             console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
             console.log(`💡 Usa POST /faucet para solicitar fondos`);
             console.log(`📊 Saldo: GET /balance`);
             console.log(`📡 Transacciones: GET /transactions`);
-            console.log(`🔑 Dirección de la faucet: ${wallet.address}`);
+            console.log(`🔑 Dirección de la faucet: ${address}`);
         } catch (walletError) {
             console.error('❌ No se pudo cargar la billetera:', walletError.message);
             console.error('📝 Revisa tu MNEMONIC o ejecuta test-wallet.js');
