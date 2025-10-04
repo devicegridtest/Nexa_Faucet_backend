@@ -218,3 +218,4 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTransactions();
     setInterval(loadTransactions, 30000);
 });
+
