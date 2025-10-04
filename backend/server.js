@@ -160,9 +160,8 @@ app.post('/faucet', async (req, res) => {
 // 🔁 Obtener saldo — ✅ CORREGIDO
 app.get('/balance', async (req, res) => {
     try {
-        // ✅ AWAIT aquí
-        const balance = await getBalance();
-        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "500.00"
+        const balance = await getBalance(); // satoshis (entero)
+        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "100500.00"
 
         res.json({
             success: true,
@@ -230,7 +229,6 @@ app.use('*', (req, res) => {
 // ✅ Iniciar servidor
 app.listen(PORT, '0.0.0.0', async () => {
     try {
-        // ✅ AWAIT aquí
         const address = await getFaucetAddress();
         console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
         console.log(`💡 Usa POST /faucet para solicitar fondos`);
