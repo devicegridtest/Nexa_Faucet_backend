@@ -1,9 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Address } = require('@nexajs/address');
 const { getWallet, getBalance, sendFaucet } = require('./wallet');
 const { canRequest, saveRequest } = require('./database');
+const bech32 = require('../bech32/dist');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -46,6 +46,21 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Faucet Backend Activo' });
 });
 
+// ✅ VALIDACIÓN DE DIRECCIÓN NEXA SIN @nexajs/address
+function isValidNexaAddress(address) {
+    if (!address || typeof address !== 'string') return false;
+    const prefix = 'nexa:';
+    if (!address.startsWith(prefix)) return false;
+
+    const bech32Data = address.slice(prefix.length);
+    try {
+        const { data } = bech32.decode(bech32Data, 702);
+        return data.length === 20; // 20 bytes = P2WPKH (Nexa)
+    } catch {
+        return false;
+    }
+}
+
 app.post('/faucet', async (req, res) => {
     const { address } = req.body;
 
@@ -54,7 +69,7 @@ app.post('/faucet', async (req, res) => {
             return res.status(400).json({ error: 'Dirección requerida' });
         }
 
-        if (!Address.isValid(address)) {
+        if (!isValidNexaAddress(address)) {
             return res.status(400).json({ error: 'Dirección Nexa inválida' });
         }
 
