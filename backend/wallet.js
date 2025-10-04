@@ -1,6 +1,6 @@
 // wallet.js
 require('dotenv').config();
-const { Wallet } = require('nexa-wallet-sdk'); // ✅ ¡Cambio clave!
+const { Wallet } = require('nexa-wallet-sdk');
 
 let walletInstance = null;
 
@@ -10,7 +10,7 @@ function getWallet() {
         if (!mnemonic) {
             throw new Error('MNEMONIC no definido en .env');
         }
-        walletInstance = new Wallet(mnemonic); // ✅ Funciona igual
+        walletInstance = new Wallet(mnemonic);
     }
     return walletInstance;
 }
@@ -27,11 +27,17 @@ async function getBalance() {
     }
 }
 
+// ✅ ¡ESTA ES LA FUNCIÓN QUE ENVÍA NEXA REAL!
 async function sendFaucet(toAddress, amountSatoshis) {
-    throw new Error(
-        '🚫 Envío desde backend no permitido. Recarga la faucet manualmente enviando NEXA a: ' +
-        getWallet().address
-    );
+    const wallet = getWallet();
+    try {
+        const txid = await wallet.send(toAddress, amountSatoshis);
+        console.log(`✅ Transacción real enviada: ${txid} → ${amountSatoshis / 100000000} NEXA a ${toAddress}`);
+        return txid;
+    } catch (error) {
+        console.error('❌ Error enviando NEXA real:', error.message);
+        throw new Error('No se pudo enviar NEXA real. Verifica saldo o red.');
+    }
 }
 
 module.exports = { getWallet, getBalance, sendFaucet };
