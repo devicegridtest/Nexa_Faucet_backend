@@ -157,11 +157,10 @@ app.post('/faucet', async (req, res) => {
     }
 });
 
-// 🔁 Obtener saldo — ✅ CORREGIDO
 app.get('/balance', async (req, res) => {
     try {
         const balance = await getBalance(); // satoshis (entero)
-        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "100500.00"
+        const balanceInNEXA = (balance / 100).toFixed(4); // "1005000.0000"
 
         res.json({
             success: true,
