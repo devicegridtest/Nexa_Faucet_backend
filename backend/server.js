@@ -1,15 +1,15 @@
+// backend/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { getWallet, getBalance, sendFaucet, getFaucetAddress } = require('./wallet');
 const { canRequest, saveRequest, db } = require('./database');
 const bech32 = require('bech32');
-const { UnitUtils } = require('libnexa-ts');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ✅ CORS: URLs limpias, sin espacios
+// ✅ CORS: URLs limpias
 app.use(cors({
     origin: [
         'null',
@@ -25,25 +25,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// Middleware de logging
+// Logging
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
-});
-
-// Ruta raíz
-app.get('/', (req, res) => {
-    res.json({
-        message: "🚀 Nexa Faucet Backend",
-        endpoints: {
-            health: "GET /health",
-            balance: "GET /balance",
-            faucet: "POST /faucet",
-            transactions: "GET /transactions",
-            reload: "POST /reload",
-            "clear-cooldown": "POST /clear-cooldown"
-        }
-    });
 });
 
 // Ruta de salud
@@ -51,12 +36,11 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Faucet Backend Activo' });
 });
 
-// ✅ Validación de dirección Nexa
+// Validación de dirección Nexa
 function isValidNexaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     const prefix = 'nexa:';
     if (!address.startsWith(prefix)) return false;
-
     const bech32Data = address.slice(prefix.length);
     try {
         const { data } = bech32.decode(bech32Data, 702);
@@ -66,7 +50,7 @@ function isValidNexaAddress(address) {
     }
 }
 
-// 🚀 RUTA PRINCIPAL: Enviar fondos reales
+// 🚀 Enviar fondos
 app.post('/faucet', async (req, res) => {
     const { address } = req.body;
 
@@ -74,25 +58,20 @@ app.post('/faucet', async (req, res) => {
         if (!address || typeof address !== 'string') {
             return res.status(400).json({ error: 'Dirección requerida' });
         }
-
         if (!isValidNexaAddress(address)) {
             return res.status(400).json({ error: 'Dirección Nexa inválida' });
         }
 
         const allowed = await canRequest(address);
         if (!allowed) {
-            return res.status(429).json({ 
-                error: 'Ya solicitaste fondos. Espera 24 horas.' 
-            });
+            return res.status(429).json({ error: 'Ya solicitaste fondos. Espera 24 horas.' });
         }
 
         const balance = await getBalance();
-        const amount = parseInt(process.env.FAUCET_AMOUNT, 10) || 1;
+        const amount = parseInt(process.env.FAUCET_AMOUNT, 10) || 1; // 1 satoshi = 0.01 NEXA
 
         if (balance < amount) {
-            return res.status(500).json({ 
-                error: 'Faucet sin fondos suficientes. Por favor, recárgala manualmente.' 
-            });
+            return res.status(500).json({ error: 'Faucet sin fondos suficientes.' });
         }
 
         let txid;
@@ -100,38 +79,8 @@ app.post('/faucet', async (req, res) => {
             txid = await sendFaucet(address, amount);
             await saveRequest(address);
 
-            const amountInNEXA = UnitUtils.formatNEXA(amount);
+            const amountInNEXA = (amount / 100).toFixed(2); // "0.01"
             console.log(`✅ Enviado ${amountInNEXA} NEXA a ${address}. TXID: ${txid}`);
-
-            // 📢 Notificación a Discord
-            if (process.env.DISCORD_WEBHOOK_URL) {
-                try {
-                    await fetch(process.env.DISCORD_WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            embeds: [{
-                                title: "💧 ¡Nueva transacción en la faucet!",
-                                color: 5814783,
-                                fields: [
-                                    { name: "Dirección", value: `\`${address}\``, inline: true },
-                                    { name: "Monto", value: `${amountInNEXA} NEXA`, inline: true },
-                                    { 
-                                        name: "TXID", 
-                                        value: `[Ver en explorer](https://explorer.nexa.org/tx/${txid})`, 
-                                        inline: false 
-                                    }
-                                ],
-                                timestamp: new Date().toISOString(),
-                                footer: { text: "Nexa Faucet" }
-                            }]
-                        })
-                    });
-                    console.log('✅ Notificación enviada a Discord');
-                } catch (err) {
-                    console.error('❌ Error enviando a Discord:', err.message);
-                }
-            }
 
             res.json({
                 success: true,
@@ -142,29 +91,24 @@ app.post('/faucet', async (req, res) => {
 
         } catch (sendError) {
             console.error('❌ Error al enviar transacción:', sendError.message);
-            res.status(500).json({ 
-                error: 'No se pudo enviar la transacción. Verifica tu billetera o el saldo.',
-                details: process.env.NODE_ENV === 'development' ? sendError.message : undefined
-            });
+            res.status(500).json({ error: 'No se pudo enviar la transacción.' });
         }
 
     } catch (error) {
         console.error('❌ Error en faucet:', error.message);
-        res.status(500).json({ 
-            error: 'Error interno del servidor',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
+// 🔁 Saldo actual
 app.get('/balance', async (req, res) => {
     try {
-        const balance = await getBalance(); // satoshis (entero)
-        const balanceInNEXA = (balance / 100).toFixed(4); // "1005000.0000"
+        const balanceInSats = await getBalance(); // Siempre en satoshis
+        const balanceInNEXA = (balanceInSats / 100).toFixed(4); // "100500.0000"
 
         res.json({
             success: true,
-            balance,
+            balance: balanceInSats,
             balanceInNEXA,
             address: await getFaucetAddress()
         });
@@ -174,7 +118,7 @@ app.get('/balance', async (req, res) => {
     }
 });
 
-// 📊 Últimas transacciones
+// 📊 Transacciones
 app.get('/transactions', (req, res) => {
     db.all(`
         SELECT address, last_request 
@@ -197,17 +141,6 @@ app.get('/transactions', (req, res) => {
     });
 });
 
-// 🔄 Recargar faucet (simulado)
-app.post('/reload', (req, res) => {
-    const { amount } = req.body;
-    if (!amount || !Number.isInteger(amount) || amount <= 0) {
-        return res.status(400).json({ error: 'Monto inválido' });
-    }
-    const amountInNEXA = UnitUtils.formatNEXA(amount);
-    console.log(`🔁 Recargando faucet con ${amountInNEXA} NEXA`);
-    res.json({ success: true, message: `Recargado: ${amountInNEXA} NEXA` });
-});
-
 // 🧹 Limpiar cooldowns
 app.post('/clear-cooldown', (req, res) => {
     db.run('DELETE FROM requests', (err) => {
@@ -220,33 +153,18 @@ app.post('/clear-cooldown', (req, res) => {
     });
 });
 
-// ⛔ Ruta no encontrada
+// Ruta no encontrada
 app.use('*', (req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-// ✅ Iniciar servidor
+// Iniciar servidor
 app.listen(PORT, '0.0.0.0', async () => {
     try {
         const address = await getFaucetAddress();
         console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
-        console.log(`💡 Usa POST /faucet para solicitar fondos`);
-        console.log(`📊 Saldo: GET /balance`);
-        console.log(`📡 Transacciones: GET /transactions`);
         console.log(`🔑 Dirección de la faucet: ${address}`);
     } catch (walletError) {
         console.error('❌ No se pudo cargar la billetera:', walletError.message);
-        console.error('📝 Revisa tu MNEMONIC o ejecuta test-wallet.js');
     }
 });
-
-// Refrescar saldo cada 30 segundos
-setInterval(async () => {
-    try {
-        const balance = await getBalance();
-        const balanceInNEXA = UnitUtils.formatNEXA(balance);
-        console.log(`📊 Saldo actualizado: ${balanceInNEXA} NEXA`);
-    } catch (err) {
-        console.error('❌ Error actualizando saldo:', err);
-    }
-}, 30000);
