@@ -21,7 +21,7 @@ async function getBalance() {
     const wallet = getWallet();
     try {
         // ✅ Usa la API pública de Nexa
-        const response = await fetch(`https://api.nexa.org/v1/address/${wallet.address}`);
+        const response = await fetch(`https://api.nexa.org/v1/address/ ${wallet.address}`);
         const data = await response.json();
         return data.balance; // En satoshis
     } catch (error) {
@@ -38,5 +38,6 @@ async function sendFaucet(toAddress, amountSatoshis) {
         getWallet().address
     );
 }
+
 
 module.exports = { getWallet, getBalance, sendFaucet };
