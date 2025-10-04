@@ -4,7 +4,7 @@ const cors = require('cors');
 const { getWallet, getBalance, sendFaucet, getFaucetAddress } = require('./wallet');
 const { canRequest, saveRequest, db } = require('./database');
 const bech32 = require('bech32');
-const { UnitUtils } = require('libnexa-ts'); // ✅ Importado
+const { UnitUtils } = require('libnexa-ts');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -86,8 +86,8 @@ app.post('/faucet', async (req, res) => {
             });
         }
 
-        const balance = await getBalance(); // ✅ Devuelve satoshis
-        const amount = parseInt(process.env.FAUCET_AMOUNT, 10) || 1; // 1 satoshi = 0.01 NEXA
+        const balance = await getBalance();
+        const amount = parseInt(process.env.FAUCET_AMOUNT, 10) || 1;
 
         if (balance < amount) {
             return res.status(500).json({ 
@@ -100,8 +100,7 @@ app.post('/faucet', async (req, res) => {
             txid = await sendFaucet(address, amount);
             await saveRequest(address);
 
-            // ✅ Convertir amount a NEXA para mostrar
-            const amountInNEXA = UnitUtils.formatNEXA(amount); // '0.01'
+            const amountInNEXA = UnitUtils.formatNEXA(amount);
             console.log(`✅ Enviado ${amountInNEXA} NEXA a ${address}. TXID: ${txid}`);
 
             // 📢 Notificación a Discord
@@ -158,11 +157,12 @@ app.post('/faucet', async (req, res) => {
     }
 });
 
+// 🔁 Obtener saldo — ✅ CORREGIDO
 app.get('/balance', async (req, res) => {
     try {
-        const wallet = getWallet();
-        const balance = await getBalance(); // satoshis (entero)
-        const balanceInNEXA = (balance / 100).toFixed(4); // ✅ 1 NEXA = 100 satoshis
+        // ✅ AWAIT aquí
+        const balance = await getBalance();
+        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "500.00"
 
         res.json({
             success: true,
@@ -205,7 +205,7 @@ app.post('/reload', (req, res) => {
     if (!amount || !Number.isInteger(amount) || amount <= 0) {
         return res.status(400).json({ error: 'Monto inválido' });
     }
-    const amountInNEXA = UnitUtils.formatNEXA(amount); // '0.01', '500.00', etc.
+    const amountInNEXA = UnitUtils.formatNEXA(amount);
     console.log(`🔁 Recargando faucet con ${amountInNEXA} NEXA`);
     res.json({ success: true, message: `Recargado: ${amountInNEXA} NEXA` });
 });
@@ -228,27 +228,28 @@ app.use('*', (req, res) => {
 });
 
 // ✅ Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
     try {
-        const wallet = getWallet();
+        // ✅ AWAIT aquí
+        const address = await getFaucetAddress();
         console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
         console.log(`💡 Usa POST /faucet para solicitar fondos`);
         console.log(`📊 Saldo: GET /balance`);
         console.log(`📡 Transacciones: GET /transactions`);
-        console.log(`🔑 Dirección de la faucet: ${wallet.accountStore.getAccount('1.0').getNewAddress().toString()}`);
+        console.log(`🔑 Dirección de la faucet: ${address}`);
     } catch (walletError) {
         console.error('❌ No se pudo cargar la billetera:', walletError.message);
         console.error('📝 Revisa tu MNEMONIC o ejecuta test-wallet.js');
     }
 });
 
-// En server.js, después de app.listen
+// Refrescar saldo cada 30 segundos
 setInterval(async () => {
     try {
         const balance = await getBalance();
-        console.log(`📊 Saldo actualizado: ${(balance / 100).toFixed(2)} NEXA`);
+        const balanceInNEXA = UnitUtils.formatNEXA(balance);
+        console.log(`📊 Saldo actualizado: ${balanceInNEXA} NEXA`);
     } catch (err) {
         console.error('❌ Error actualizando saldo:', err);
     }
 }, 30000);
-
