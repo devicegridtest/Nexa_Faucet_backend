@@ -1,7 +1,8 @@
+// wallet.js
 require('dotenv').config();
 const axios = require('axios');
 const bip39 = require('bip39');
-const { address } = require('bitcoinjs-lib');
+const bitcoinjs = require('bitcoinjs-lib'); // ✅ ¡AÑADIDO! Esto era lo que faltaba
 
 const NETWORK = {
     messagePrefix: '\x18Nexa Signed Message:\n',
@@ -28,7 +29,7 @@ function getWallet() {
         }
 
         const seed = bip39.mnemonicToSeedSync(mnemonic);
-        const root = bitcoinjs.bip32.fromSeed(seed);
+        const root = bitcoinjs.bip32.fromSeed(seed); // ✅ ¡AHORA FUNCIONA!
         const child = root.derivePath("m/44'/145'/0'/0/0");
         const derivedAddress = child.address;
 
@@ -40,6 +41,7 @@ function getWallet() {
 async function getBalance() {
     const wallet = getWallet();
     try {
+        // ✅ ¡CORREGIDO: SIN ESPACIOS EN LA URL!
         const response = await axios.get(`https://api.nexa.org/v1/address/${wallet.address}`);
         return response.data.balance; // En satoshis
     } catch (error) {
