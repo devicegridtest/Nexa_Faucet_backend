@@ -241,3 +241,14 @@ app.listen(PORT, '0.0.0.0', () => {
         console.error('📝 Revisa tu MNEMONIC o ejecuta test-wallet.js');
     }
 });
+
+// En server.js, después de app.listen
+setInterval(async () => {
+    try {
+        const balance = await getBalance();
+        console.log(`📊 Saldo actualizado: ${(balance / 100).toFixed(2)} NEXA`);
+    } catch (err) {
+        console.error('❌ Error actualizando saldo:', err);
+    }
+}, 30000);
+
