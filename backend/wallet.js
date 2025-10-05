@@ -55,4 +55,4 @@ const getFaucetAddress = async () => {
     return account.getNewAddress().toString();
 };
 
-module.exports = { getWallet, getBalance, sendFaucet, getFaucetAddress };
+module.exports = { getW
