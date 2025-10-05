@@ -35,13 +35,33 @@ const getBalance = async () => {
 const sendFaucet = async (toAddress, amountSatoshis) => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
-    const tx = await wallet.newTransaction(account)
+    const built = await wallet.newTransaction(account)
         .onNetwork('mainnet')
         .sendTo(toAddress, amountSatoshis.toString())
         .populate()
         .sign()
         .build();
-    return await wallet.sendTransaction(tx.serialize());
+
+    // build() may return different shapes depending on SDK version:
+    // - a raw hex string
+    // - an object with serialize() or toHex()
+    // - an object with a hex/raw property
+    let rawTx;
+    if (built && typeof built === 'string') {
+        rawTx = built;
+    } else if (built && typeof built.serialize === 'function') {
+        rawTx = built.serialize();
+    } else if (built && typeof built.toHex === 'function') {
+        rawTx = built.toHex();
+    } else if (built && built.hex) {
+        rawTx = built.hex;
+    } else if (built && built.raw) {
+        rawTx = built.raw;
+    } else {
+        throw new Error('Unable to serialize transaction returned from build()');
+    }
+
+    return await wallet.sendTransaction(rawTx);
 };
 
 const getFaucetAddress = async () => {
