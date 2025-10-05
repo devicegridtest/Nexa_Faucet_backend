@@ -12,7 +12,6 @@ const getWallet = async () => {
         await rostrumProvider.connect('mainnet');
         walletInstance = new Wallet(mnemonic, 'mainnet');
         await walletInstance.initialize();
-        // ✅ La documentación dice que '1.0' es la cuenta por defecto
     }
     return walletInstance;
 };
@@ -20,9 +19,9 @@ const getWallet = async () => {
 const getBalance = async () => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
-    if (!account) throw new Error('Cuenta 1.0 no disponible. ¿La billetera se inicializó?');
+    if (!account) throw new Error('Cuenta 1.0 no disponible');
 
-    // ✅ La documentación muestra: account.balance.confirmed
+    await account.sync(); // Sincroniza para obtener saldo actualizado
     const raw = account.balance.confirmed;
 
     if (typeof raw === 'number') return Math.floor(raw);
@@ -39,15 +38,16 @@ const sendFaucet = async (toAddress, amountSatoshis) => {
     if (!account) throw new Error('Cuenta 1.0 no disponible para enviar');
 
     try {
-        // ✅ SIN .setFee() — la documentación oficial NO lo usa
+        // ✅ SIN .setFee() — el SDK lo calcula automáticamente
         const tx = await wallet.newTransaction(account)
             .onNetwork('mainnet')
-            .sendTo(toAddress, amountSatoshis.toString()) // como string
-            .populate() // ← calcula fee automáticamente
+            .sendTo(toAddress, amountSatoshis.toString())
+            .populate()
             .sign()
-            .build();
+            .build(); // ← Devuelve un string hex
 
-        return await wallet.sendTransaction(tx.serialize());
+        // ✅ Envía el string hex directamente
+        return await wallet.sendTransaction(tx); // ← ¡NO .serialize()!
     } catch (error) {
         console.error('❌ Error al enviar NEXA:', error.message);
         throw error;
