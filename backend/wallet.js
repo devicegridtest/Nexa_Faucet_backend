@@ -12,10 +12,7 @@ const getWallet = async () => {
         await rostrumProvider.connect('mainnet');
         walletInstance = new Wallet(mnemonic, 'mainnet');
         await walletInstance.initialize();
-
-        // ✅ Deriva y almacena la cuenta 1.0 explícitamente
-        const account = await walletInstance.deriveAccount("m/44'/1022'/0'/0/0");
-        walletInstance.accountStore.setAccount('1.0', account);
+        // ✅ La documentación dice que '1.0' es la cuenta por defecto
     }
     return walletInstance;
 };
@@ -23,9 +20,9 @@ const getWallet = async () => {
 const getBalance = async () => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
-    
-    // ✅ Sincroniza para obtener saldo actualizado
-    await account.sync();
+    if (!account) throw new Error('Cuenta 1.0 no disponible. ¿La billetera se inicializó?');
+
+    // ✅ La documentación muestra: account.balance.confirmed
     const raw = account.balance.confirmed;
 
     if (typeof raw === 'number') return Math.floor(raw);
@@ -39,13 +36,14 @@ const getBalance = async () => {
 const sendFaucet = async (toAddress, amountSatoshis) => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
+    if (!account) throw new Error('Cuenta 1.0 no disponible para enviar');
 
     try {
-        // ✅ SIN .setFee() — el SDK lo calcula automáticamente
+        // ✅ SIN .setFee() — la documentación oficial NO lo usa
         const tx = await wallet.newTransaction(account)
             .onNetwork('mainnet')
-            .sendTo(toAddress, amountSatoshis.toString())
-            .populate()
+            .sendTo(toAddress, amountSatoshis.toString()) // como string
+            .populate() // ← calcula fee automáticamente
             .sign()
             .build();
 
@@ -59,6 +57,7 @@ const sendFaucet = async (toAddress, amountSatoshis) => {
 const getFaucetAddress = async () => {
     const wallet = await getWallet();
     const account = wallet.accountStore.getAccount('1.0');
+    if (!account) throw new Error('Cuenta 1.0 no disponible para dirección');
     return account.getNewAddress().toString();
 };
 
