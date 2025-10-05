@@ -253,5 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar
     loadDonationAddress();
     loadTransactions();
-    setInterval(loadTransactions, 30000);
+    setInterval(loadTransactions, 3000);
+
 });
