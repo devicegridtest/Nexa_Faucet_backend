@@ -96,16 +96,15 @@ app.post('/faucet', async (req, res) => {
     }
 });
 
-// 🔁 Obtener saldo
 app.get('/balance', async (req, res) => {
     try {
-        const balance = await getBalance(); // satoshis
-        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "100500.00"
+        const balance = await getBalance(); // en satoshis
+        const balanceInNEXA = balance / 100; // convertir a NEXA (1 NEXA = 100 satoshis)
 
         res.json({
             success: true,
-            balance,
-            balanceInNEXA,
+            balance,           // en satoshis (para uso interno si se necesita)
+            balanceInNEXA,     //  en NEXA (para mostrar al usuario)
             address: await getFaucetAddress()
         });
     } catch (error) {
@@ -157,4 +156,5 @@ app.use('*', (req, res) => {
 // ✅ Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
+
 });
