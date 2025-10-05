@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showMessage('❌ ' + error.message, 'error');
         } finally {
             requestBtn.disabled = false;
-            requestBtn.textContent = 'Solicitar 0.01 NEXA';
+            requestBtn.textContent = 'Solicitar 100 NEXA';
         }
     });
 
