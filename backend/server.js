@@ -9,13 +9,13 @@ const { UnitUtils } = require('libnexa-ts');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ✅ CORS: URLs limpias
+// ✅ CORS: URLs limpias (SIN ESPACIOS)
 app.use(cors({
     origin: [
         'null',
         'http://localhost:3000',
         'http://127.0.0.1:5500',
-        'https://devicegridtest.org'
+        'https://devicegridtest.org' // ✅ Corregido
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// ✅ VALIDACIÓN SIMPLE Y FUNCIONAL (¡LA CLAVE!)
+// ✅ VALIDACIÓN SIMPLE Y FUNCIONAL
 function isValidNexaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     const regex = /^nexa:[a-z0-9]{48,90}$/;
@@ -57,8 +57,8 @@ app.post('/faucet', async (req, res) => {
         }
 
         const balance = await getBalance();
-        // En la ruta /faucet
-        const amount = parseInt(process.env.FAUCET_AMOUNT) || 10000; // 10 NEXA por defecto
+        // ✅ 100 NEXA = 10,000 satoshis (configurable en Render)
+        const amount = parseInt(process.env.FAUCET_AMOUNT) || 10000;
 
         if (balance < amount) {
             return res.status(500).json({ 
@@ -100,7 +100,7 @@ app.post('/faucet', async (req, res) => {
 app.get('/balance', async (req, res) => {
     try {
         const balance = await getBalance(); // satoshis
-        const balanceInNEXA = UnitUtils.formatNEXA(balance); // "100500.00"
+        const balanceInNEXA = UnitUtils.formatNEXA(balance);
 
         res.json({
             success: true,
