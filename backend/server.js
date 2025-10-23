@@ -5,7 +5,7 @@ const cors = require('cors');
 const { getBalance, sendFaucet, getFaucetAddress } = require('./wallet');
 const { canRequest, saveRequest, db } = require('./database');
 const { UnitUtils } = require('libnexa-ts');
-
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
 const app = express();
 const PORT = process.env.PORT || 10000;
 
