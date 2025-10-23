@@ -58,7 +58,7 @@ app.post('/faucet', async (req, res) => {
 
         const balance = await getBalance();
         // En la ruta /faucet
-        const amount = parseInt(process.env.FAUCET_AMOUNT) || 10000; // 10 NEXA por defecto
+        const amount = parseInt(process.env.FAUCET_AMOUNT) || 100000; 
 
         if (balance < amount) {
             return res.status(500).json({ 
@@ -158,3 +158,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
 
 });
+
