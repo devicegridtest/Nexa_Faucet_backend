@@ -1,55 +1,97 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = process.env.NODE_ENV === 'test' 
-    ? ':memory:' 
+// ===============================
+// 📂 Ruta segura a la base de datos
+// ===============================
+const dbPath = process.env.NODE_ENV === 'test'
+    ? ':memory:' // para test unitarios
     : path.join(__dirname, 'faucet.db');
 
-const db = new sqlite3.Database(dbPath);
+// ===============================
+// 💾 Conexión a la base de datos
+// ===============================
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('❌ Error al conectar con la base de datos:', err.message);
+    } else {
+        console.log(`✅ Base de datos abierta en ${dbPath}`);
+    }
+});
 
+// ===============================
+// 🧱 Crear tabla si no existe
+// ===============================
 db.serialize(() => {
     db.run(`
         CREATE TABLE IF NOT EXISTS requests (
             address TEXT PRIMARY KEY,
-            last_request INTEGER NOT NULL  -- almacenamos en SEGUNDOS Unix
+            last_request INTEGER NOT NULL
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('❌ Error al crear tabla requests:', err.message);
+        } else {
+            console.log('🗃️ Tabla "requests" lista.');
+        }
+    });
 });
 
+// ===============================
+// ⏳ Verificar si puede reclamar
+// ===============================
 function canRequest(address) {
     return new Promise((resolve, reject) => {
+        if (!address) return reject(new Error('Dirección no proporcionada'));
+
         db.get(
-            `SELECT last_request FROM requests WHERE address = ?`, 
-            [address], 
+            `SELECT last_request FROM requests WHERE address = ?`,
+            [address],
             (err, row) => {
                 if (err) return reject(err);
+
+                // Si no existe registro, puede reclamar
                 if (!row) return resolve(true);
 
-                // COOLDOWN en milisegundos (ej: 86400000 = 24h)
-                const cooldownMs = parseInt(process.env.COOLDOWN_MS) || 86400000;
-                const nowSeconds = Math.floor(Date.now() / 1000);
-                const lastRequestSeconds = row.last_request;
+                const cooldown = parseInt(process.env.COOLDOWN_MS, 10) || 86400000; // 24h
+                const now = Date.now();
+                const last = Number(row.last_request) || 0;
 
-                // Comparamos en milisegundos para precisión
-                const elapsedMs = (nowSeconds - lastRequestSeconds) * 1000;
-                resolve(elapsedMs > cooldownMs);
+                // Devuelve true si ya pasó el tiempo de espera
+                resolve((now - last) > cooldown);
             }
         );
     });
 }
 
+// ===============================
+// 💾 Guardar o actualizar reclamo
+// ===============================
 function saveRequest(address) {
     return new Promise((resolve, reject) => {
-        const nowSeconds = Math.floor(Date.now() / 1000); // ✅ Segundos Unix
+        if (!address) return reject(new Error('Dirección no proporcionada'));
+
+        const now = Date.now();
+
+        // Reemplaza o inserta según exista el registro
         db.run(
-            `INSERT OR REPLACE INTO requests (address, last_request) VALUES (?, ?)`,
-            [address, nowSeconds],
+            `INSERT INTO requests (address, last_request)
+             VALUES (?, ?)
+             ON CONFLICT(address) DO UPDATE SET last_request = excluded.last_request`,
+            [address, now],
             (err) => {
-                if (err) return reject(err);
+                if (err) {
+                    console.error('❌ Error al guardar solicitud:', err.message);
+                    return reject(err);
+                }
+                console.log(`✅ Registro actualizado: ${address} → ${new Date(now).toLocaleString('es-ES')}`);
                 resolve();
             }
         );
     });
 }
 
+// ===============================
+// 📤 Exportar funciones y conexión
+// ===============================
 module.exports = { canRequest, saveRequest, db };
