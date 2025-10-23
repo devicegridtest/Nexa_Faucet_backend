@@ -23,6 +23,19 @@ app.use(cors({
 
 app.use(express.json());
 
+// ✅ Enviar la clave pública de reCAPTCHA al frontend
+app.get('/api/recaptcha-key', (req, res) => {
+    const siteKey = process.env.RECAPTCHA_SITE_KEY;
+
+    if (!siteKey) {
+        console.warn('⚠️ Falta RECAPTCHA_SITE_KEY en el archivo .env');
+        return res.status(500).json({ error: 'RECAPTCHA_SITE_KEY no configurada' });
+    }
+
+    res.json({ siteKey });
+});
+
+
 // Middleware de logging
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
