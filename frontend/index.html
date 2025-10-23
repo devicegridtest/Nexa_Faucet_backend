@@ -6,6 +6,7 @@
 <title>Nexa Faucet | Free NEXA</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
 
@@ -42,11 +43,15 @@
             <h2 id="faucetTitle">⬇️ Claim your NEXA</h2>
             <div class="faucet-form">
                 <input type="text" id="address" placeholder="nexa:your_address_here..." required>
-                <button class="g-recaptcha" id="requestBtn"
-                        data-sitekey="6Ldsed8rAAAAAHBk-ouCW0OS3keZIxSNvmb6HAAv"
-                        data-callback="onRecaptchaSuccess">
-                    Claim 1000 NEXA
-                </button>
+               <!-- Botón con reCAPTCHA invisible -->
+            <button
+              class="g-recaptcha"
+              id="requestBtn"
+              data-callback="onRecaptchaSuccess"
+              data-action="faucet_request">
+              Solicitar 1000 NEXA
+            </button>
+
             </div>
             <div id="message" class="message"></div>
         </div>
@@ -145,7 +150,6 @@
     </div>
 </footer>
 
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script src="script.js"></script>
 
 <script>
@@ -241,5 +245,3 @@ elems.forEach(id => {
 
 </body>
 </html>
-
-
