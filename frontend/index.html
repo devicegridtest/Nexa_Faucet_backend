@@ -42,14 +42,16 @@
                 <div class="faucet-form">
                     <input type="text" id="address" placeholder="nexa:tu_direccion_aqui..." required>
 
-                    <!-- Botón con reCAPTCHA invisible -->
-                  <button
-                    class="g-recaptcha"
-                    id="requestBtn"
-                    data-callback="onRecaptchaSuccess"
-                    data-action="faucet_request">
-                    Solicitar 1000 NEXA
-                  </button>   
+                    
+                   <!-- Botón con reCAPTCHA invisible (v2) -->
+                <button
+                  class="g-recaptcha"
+                  id="requestBtn"
+                  data-sitekey="6Ldsed8rAAAAAHBk-ouCW0OS3keZIxSNvmb6HAAv"
+                  data-callback="onRecaptchaSuccess">
+                  Solicitar 1000 NEXA
+                </button>
+
                 </div>
                 <div id="message" class="message"></div>
             </div>
