@@ -71,7 +71,7 @@ app.post('/faucet', async (req, res) => {
 
         const balance = await getBalance();
         // En la ruta /faucet
-        const amount = parseInt(process.env.FAUCET_AMOUNT) || 100000; 
+        const amount = parseInt(process.env.FAUCET_AMOUNT) || 1000000; 
 
         if (balance < amount) {
             return res.status(500).json({ 
@@ -169,5 +169,6 @@ app.use('*', (req, res) => {
 // ✅ Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Faucet Backend corriendo en puerto ${PORT}`);
+
 
 });
