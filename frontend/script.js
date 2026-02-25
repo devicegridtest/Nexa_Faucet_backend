@@ -1,20 +1,20 @@
-// ===== CONFIGURACIÓN =====
+// ===== CONFIGURATION =====
 const CONFIG = {
-    API_BASE: 'https://nexa-faucet.onrender.com', // ✅ Corregido: sin espacios
-    UPDATE_INTERVAL: 30000, // 30 segundos
-    FETCH_TIMEOUT: 10000, // 10 segundos
-    AMOUNT: '1000', // Cantidad consistente con el diseño
+    API_BASE: 'https://nexa-faucet.onrender.com', 
+    UPDATE_INTERVAL: 30000, // 30 seconds
+    FETCH_TIMEOUT: 10000, // 10 seconds
+    AMOUNT: '1000', // Quantity consistent with the design
     ADDRESS_REGEX: /^nexa:[a-z0-9]{48,}$/
 };
 
-// ===== UTILIDADES =====
+// ===== UTILITIES =====
 class Utils {
     static showMessage(element, text, type) {
         element.textContent = text;
         element.className = `message ${type}`;
         element.style.display = 'block';
         
-        // Animación de entrada
+        // Entrance animation
         element.style.opacity = '0';
         element.style.transform = 'translateY(-10px)';
         requestAnimationFrame(() => {
@@ -59,7 +59,7 @@ class Utils {
     }
 }
 
-// ===== SERVICIOS =====
+// ===== SERVICES =====
 class FaucetService {
     constructor() {
         this.siteKey = null;
@@ -129,7 +129,7 @@ class FaucetService {
     }
 }
 
-// ===== MANEJADORES DE DOM =====
+// ===== HANDLERS OF DOM =====
 class UIHandler {
     constructor(service) {
         this.service = service;
@@ -155,7 +155,7 @@ class UIHandler {
 
     async loadInitialData() {
         try {
-            // Cargar balance y dirección de donación en paralelo
+            // Load balance and donation address simultaneously
             const [balanceData] = await Promise.all([
                 this.service.getBalance().catch(() => null),
                 this.loadDonationAddress().catch(() => null),
@@ -251,15 +251,15 @@ class UIHandler {
     }
 
     setupEventListeners() {
-        // Botón de solicitud
+        // Request button
         this.elements.requestBtn.addEventListener('click', () => this.handleFaucetRequest());
         
-        // Botón de copiar
+        // Copy button
         if (this.elements.copyBtn) {
             this.elements.copyBtn.addEventListener('click', () => this.handleCopyAddress());
         }
         
-        // Validación en tiempo real
+        // Real-time validation
         if (this.elements.addressInput) {
             this.elements.addressInput.addEventListener('input', (e) => {
                 e.target.value = e.target.value.trim();
@@ -278,7 +278,7 @@ class UIHandler {
         
         const address = this.elements.addressInput?.value.trim();
         
-        // Validaciones
+        // Validations
         if (!address) {
             Utils.showMessage(this.elements.messageDiv, '⚠️ Please enter a Nexa address', 'error');
             return;
@@ -294,20 +294,20 @@ class UIHandler {
             return;
         }
         
-        // Procesar solicitud
+        // Process request
         this.isProcessing = true;
         this.setButtonState(true);
         
         try {
-            // Ejecutar reCAPTCHA
+            // Execute reCAPTCHA
             const token = await grecaptcha.execute(this.service.siteKey, { 
                 action: 'faucet_request' 
             });
             
-            // Enviar solicitud
+            // Submit request
             const result = await this.service.requestFaucet(address, token);
             
-            // Mostrar éxito
+            // Show success
             const amount = (result.amount / 100).toFixed(4);
             const shortTxid = result.txid ? `${result.txid.substring(0, 12)}...` : 'N/A';
             const formattedDate = Utils.formatDate(new Date());
@@ -318,12 +318,12 @@ class UIHandler {
                 'success'
             );
             
-            // Limpiar input
+            //Clean input
             if (this.elements.addressInput) {
                 this.elements.addressInput.value = '';
             }
             
-            // Actualizar balance
+            // Update balance
             const balanceData = await this.service.getBalance();
             if (balanceData.success) {
                 this.updateBalanceDisplay(balanceData);
@@ -382,7 +382,7 @@ class UIHandler {
     }
 
     startAutoUpdates() {
-        // Actualizar balance cada 30 segundos
+        // Update balance every 30 seconds
         setInterval(async () => {
             try {
                 const data = await this.service.getBalance();
@@ -392,12 +392,12 @@ class UIHandler {
             }
         }, CONFIG.UPDATE_INTERVAL);
         
-        // Actualizar transacciones cada 30 segundos
+        // Update transactions every 30 seconds
         setInterval(() => this.loadTransactions(), CONFIG.UPDATE_INTERVAL);
     }
 }
 
-// ===== INICIALIZACIÓN =====
+// ===== INITIALIZATION  =====
 document.addEventListener('DOMContentLoaded', () => {
     const faucetService = new FaucetService();
     const uiHandler = new UIHandler(faucetService);
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Precarga de reCAPTCHA
+    //reCAPTCHA preload
     if (typeof grecaptcha !== 'undefined') {
         grecaptcha.ready(() => {
             console.log('✅ reCAPTCHA is ready');
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== MANEJO DE ERRORES GLOBAL =====
+// ===== GLOBAL ERROR HANDLING =====
 window.addEventListener('error', (event) => {
     if (event.message.includes('fetch')) {
         console.error('Network error detected:', event.message);
